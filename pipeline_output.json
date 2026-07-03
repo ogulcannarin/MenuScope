@@ -1,0 +1,137 @@
+{
+  "aranan_bolge": "Alsancak, Izmir",
+  "toplam_mekan": 10,
+  "menu_bulunan": 4,
+  "mekanlar": [
+    {
+      "isim": "Konyali mesut usta",
+      "kategori": "fast_food",
+      "adres": "Alsancak Sevgi Yolu",
+      "website": "",
+      "koordinat": {
+        "lat": 38.4392321,
+        "lon": 27.1437218
+      },
+      "menu_linki": "Bulunamadi",
+      "menu_platform": null,
+      "menu_durum": "BULUNAMADI"
+    },
+    {
+      "isim": "Sunset",
+      "kategori": "bar",
+      "adres": "Adres yok",
+      "website": "",
+      "koordinat": {
+        "lat": 38.4351365,
+        "lon": 27.1400021
+      },
+      "menu_linki": "https://qr.finedinemenu.com/sunset-adana",
+      "menu_platform": "finedinemenu.com",
+      "menu_durum": "BULUNDU"
+    },
+    {
+      "isim": "Burger King",
+      "kategori": "fast_food",
+      "adres": "Adres yok",
+      "website": "",
+      "koordinat": {
+        "lat": 38.42772,
+        "lon": 27.1407081
+      },
+      "menu_linki": "Bulunamadi",
+      "menu_platform": null,
+      "menu_durum": "BULUNAMADI"
+    },
+    {
+      "isim": "Lozan Pastanesi",
+      "kategori": "cafe",
+      "adres": "Plevne Bulvarı, 25",
+      "website": "https://lozanpastanesi.com.tr/",
+      "koordinat": {
+        "lat": 38.4301396,
+        "lon": 27.1417786
+      },
+      "menu_linki": "https://raveos.qr.menulux.com/",
+      "menu_platform": "menulux.com",
+      "menu_durum": "BULUNDU"
+    },
+    {
+      "isim": "guna",
+      "kategori": "restaurant",
+      "adres": "Şehit Nevres Bulvarı, 15",
+      "website": "",
+      "koordinat": {
+        "lat": 38.4293794,
+        "lon": 27.1360361
+      },
+      "menu_linki": "Bulunamadi",
+      "menu_platform": null,
+      "menu_durum": "BULUNAMADI"
+    },
+    {
+      "isim": "reyna cafe",
+      "kategori": "cafe",
+      "adres": "Şevket Özçelik Sokak",
+      "website": "",
+      "koordinat": {
+        "lat": 38.4286476,
+        "lon": 27.1385264
+      },
+      "menu_linki": "https://qr.finedinemenu.com/reka-cafe?table=sample",
+      "menu_platform": "finedinemenu.com",
+      "menu_durum": "BULUNDU"
+    },
+    {
+      "isim": "kokorecin alasi",
+      "kategori": "restaurant",
+      "adres": "Kıbrıs Şehitleri Caddesi, 118, İzmir",
+      "website": "http://www.matchcostmetics.com",
+      "koordinat": {
+        "lat": 38.4391097,
+        "lon": 27.1438083
+      },
+      "menu_linki": "https://sahinleret.menulux.com/product-details/1072758.html",
+      "menu_platform": "menulux.com",
+      "menu_durum": "BULUNDU"
+    },
+    {
+      "isim": "Midyeli",
+      "kategori": "restaurant",
+      "adres": "Atatürk Caddesi;Kıbrıs Şehitler Cd, İzmir",
+      "website": "",
+      "koordinat": {
+        "lat": 38.435743,
+        "lon": 27.1415113
+      },
+      "menu_linki": "Bulunamadi",
+      "menu_platform": null,
+      "menu_durum": "BULUNAMADI"
+    },
+    {
+      "isim": "Poetika Babıali Kahvecisi",
+      "kategori": "cafe",
+      "adres": "Adres yok",
+      "website": "",
+      "koordinat": {
+        "lat": 38.4369027,
+        "lon": 27.1422027
+      },
+      "menu_linki": "Bulunamadi",
+      "menu_platform": null,
+      "menu_durum": "BULUNAMADI"
+    },
+    {
+      "isim": "sec-tart",
+      "kategori": "restaurant",
+      "adres": "Şevket Özçelik Sk",
+      "website": "",
+      "koordinat": {
+        "lat": 38.427073,
+        "lon": 27.1373025
+      },
+      "menu_linki": "Bulunamadi",
+      "menu_platform": null,
+      "menu_durum": "BULUNAMADI"
+    }
+  ]
+}

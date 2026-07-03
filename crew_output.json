@@ -1,0 +1,163 @@
+[
+  {
+    "restoran": "kokorecin alasi",
+    "orijinal_isim": "Çeyrek",
+    "standart_isim": "Kokoreç",
+    "kategori": "Ana Yemek",
+    "fiyat": "250 ₺"
+  },
+  {
+    "restoran": "kokorecin alasi",
+    "orijinal_isim": "Çeyrek İçi Yarım",
+    "standart_isim": "Kokoreç",
+    "kategori": "Ana Yemek",
+    "fiyat": "350 ₺"
+  },
+  {
+    "restoran": "kokorecin alasi",
+    "orijinal_isim": "Yarım",
+    "standart_isim": "Kokoreç",
+    "kategori": "Ana Yemek",
+    "fiyat": "350 ₺"
+  },
+  {
+    "restoran": "kokorecin alasi",
+    "orijinal_isim": "Yarım İçi Buçuk",
+    "standart_isim": "Kokoreç",
+    "kategori": "Ana Yemek",
+    "fiyat": "550 ₺"
+  },
+  {
+    "restoran": "kokorecin alasi",
+    "orijinal_isim": "Üç Parça",
+    "standart_isim": "Kokoreç",
+    "kategori": "Ana Yemek",
+    "fiyat": "550 ₺"
+  },
+  {
+    "restoran": "kokorecin alasi",
+    "orijinal_isim": "Porsiyon",
+    "standart_isim": "Kokoreç",
+    "kategori": "Ana Yemek",
+    "fiyat": "700 ₺"
+  },
+  {
+    "restoran": "kokorecin alasi",
+    "orijinal_isim": "Duble Yarım",
+    "standart_isim": "Kokoreç",
+    "kategori": "Ana Yemek",
+    "fiyat": "700 ₺"
+  },
+  {
+    "restoran": "kokorecin alasi",
+    "orijinal_isim": "Az Söğüş",
+    "standart_isim": "Söğüş",
+    "kategori": "Ana Yemek",
+    "fiyat": "300 ₺"
+  },
+  {
+    "restoran": "kokorecin alasi",
+    "orijinal_isim": "Dürüm Söğüş",
+    "standart_isim": "Söğüş",
+    "kategori": "Ana Yemek",
+    "fiyat": "400 ₺"
+  },
+  {
+    "restoran": "kokorecin alasi",
+    "orijinal_isim": "Adet Beyin",
+    "standart_isim": "Beyin",
+    "kategori": "Ana Yemek",
+    "fiyat": "180 ₺"
+  },
+  {
+    "restoran": "kokorecin alasi",
+    "orijinal_isim": "250 Gram",
+    "standart_isim": "Kokoreç",
+    "kategori": "Ana Yemek",
+    "fiyat": "125 ₺"
+  },
+  {
+    "restoran": "kokorecin alasi",
+    "orijinal_isim": "500 Gram",
+    "standart_isim": "Kokoreç",
+    "kategori": "Ana Yemek",
+    "fiyat": "250 ₺"
+  },
+  {
+    "restoran": "kokorecin alasi",
+    "orijinal_isim": "750 Gram",
+    "standart_isim": "Kokoreç",
+    "kategori": "Ana Yemek",
+    "fiyat": "375 ₺"
+  },
+  {
+    "restoran": "kokorecin alasi",
+    "orijinal_isim": "Kilogram",
+    "standart_isim": "Kokoreç",
+    "kategori": "Ana Yemek",
+    "fiyat": "500 ₺"
+  },
+  {
+    "restoran": "kokorecin alasi",
+    "orijinal_isim": "Ayran",
+    "standart_isim": "Ayran",
+    "kategori": "Soğuk Icecek",
+    "fiyat": "50 ₺"
+  },
+  {
+    "restoran": "kokorecin alasi",
+    "orijinal_isim": "Şalgam",
+    "standart_isim": "Şalgam",
+    "kategori": "Soğuk Icecek",
+    "fiyat": "80 ₺"
+  },
+  {
+    "restoran": "kokorecin alasi",
+    "orijinal_isim": "Kola",
+    "standart_isim": "Cola",
+    "kategori": "Soğuk Icecek",
+    "fiyat": "80 ₺"
+  },
+  {
+    "restoran": "kokorecin alasi",
+    "orijinal_isim": "Fanta",
+    "standart_isim": "Fanta",
+    "kategori": "Soğuk Icecek",
+    "fiyat": "80 ₺"
+  },
+  {
+    "restoran": "kokorecin alasi",
+    "orijinal_isim": "Sprite",
+    "standart_isim": "Sprite",
+    "kategori": "Soğuk Icecek",
+    "fiyat": "80 ₺"
+  },
+  {
+    "restoran": "kokorecin alasi",
+    "orijinal_isim": "Ice Tea",
+    "standart_isim": "Ice Tea",
+    "kategori": "Soğuk Icecek",
+    "fiyat": "80 ₺"
+  },
+  {
+    "restoran": "kokorecin alasi",
+    "orijinal_isim": "Niğde Gazozu",
+    "standart_isim": "Gazoz",
+    "kategori": "Soğuk Icecek",
+    "fiyat": "60 ₺"
+  },
+  {
+    "restoran": "kokorecin alasi",
+    "orijinal_isim": "Meyveli Soda",
+    "standart_isim": "Soda",
+    "kategori": "Soğuk Icecek",
+    "fiyat": "40 ₺"
+  },
+  {
+    "restoran": "kokorecin alasi",
+    "orijinal_isim": "Sade Soda",
+    "standart_isim": "Soda",
+    "kategori": "Soğuk Icecek",
+    "fiyat": "40 ₺"
+  }
+]
