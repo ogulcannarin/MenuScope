@@ -4,3 +4,5 @@ __pycache__/
 .claude/
 .venv/
 venv/
+venues_cache.json
+menu_links_cache.json

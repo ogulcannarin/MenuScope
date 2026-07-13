@@ -36,7 +36,7 @@ GOOGLE_MAPS_API_KEY=...  # opsiyonel, su an hicbir agent'a bagli degil (yedek/ma
 python main.py
 ```
 
-Aranacak bölge, yarıçap ve mekan limiti `tasks.py` içindeki `task_1` tanımından değiştirilebilir.
+Aranacak bölge, yarıçap ve mekan limiti `tasks.py` içindeki `AREA_NAME`, `RADIUS_M`, `LIMIT` değerlerinden değiştirilebilir.
 
 ## Çıktı
 

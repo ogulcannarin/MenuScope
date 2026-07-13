@@ -1,5 +1,7 @@
+import base64
 import json
 import math
+import os
 import time
 import requests
 from crewai.tools import tool
@@ -24,14 +26,15 @@ def _haversine_m(lat1, lon1, lat2, lon2) -> float:
 def fetch_restaurants_osm(area_name: str, radius_m: int = 2000, limit: int = 50) -> str:
     """
     Verilen bölge adını (örn: 'Konak, İzmir') koordinata çevirip,
-    o noktanın çevresindeki belirtilen yarıçapta (varsayılan 2 km) tüm
-    restoran, kafe, fast-food ve benzeri yeme-içme mekanlarını bulur.
-    
+    o noktanın çevresindeki belirtilen yarıçapta (varsayılan 2 km) alkol
+    satabilecek mekanları (bar, pub, biergarten, gece kulübü, restoran/meyhane)
+    bulur.
+
     Args:
         area_name: Aranacak bölge adı (örn: 'Alsancak, İzmir', 'Bornova, İzmir')
         radius_m: Arama yarıçapı metre cinsinden (varsayılan: 2000)
         limit: Maksimum döndürülecek mekan sayısı (varsayılan: 50)
-    
+
     Returns:
         JSON formatında mekan listesi (isim, adres, koordinat, kategori, website)
     """
@@ -59,13 +62,12 @@ def fetch_restaurants_osm(area_name: str, radius_m: int = 2000, limit: int = 50)
     # Nominatim rate limit kuralı: istekler arası en az 1 saniye bekleme
     time.sleep(1)
 
-    # ── ADIM 2: Overpass API ile tüm yeme-içme mekanlarını sorgula ──
-    # Kapsanan kategoriler: restoran, kafe, fast-food, bar, pub, yiyecek dükkanı,
-    # dondurma, pasta, içecek, food_court, büfe
+    # ── ADIM 2: Overpass API ile alkol satabilecek mekanlari sorgula ──
+    # Kapsanan kategoriler: bar, pub, biergarten, gece kulubu, restoran
+    # (meyhane dahil - OSM'de ayri bir "meyhane" etiketi yok, amenity=restaurant
+    # altinda geciyor). Kafe, fast-food, pastane vb. alkolsuz kategoriler kapsam disi.
     amenity_types = [
-        "restaurant", "cafe", "fast_food", "bar", "pub",
-        "food_court", "ice_cream", "bakery", "confectionery",
-        "juice_bar", "biergarten", "bbq"
+        "bar", "pub", "biergarten", "nightclub", "restaurant"
     ]
 
     # Overpass QL sorgusu — her kategori için around filtresi
@@ -225,10 +227,14 @@ def search_digital_menu(restaurant_name: str, location: str = "İzmir") -> str:
     # restoranin KENDI menu sayfasi degil, ucuncu parti bir profil/liste
     # sayfasidir (orn. wheree.com bir Google Business aynasi). Bu domainler
     # asla "menu_linki" olarak kabul edilmemeli, tarasak bile gercek fiyat
-    # verisi cikmaz.
+    # verisi cikmaz. Facebook burada YOK - dijital menusu olmayan kucuk
+    # isletmelerde son care olarak kabul ediliyor (asagida 3. kademe), cunku
+    # sayfa/menu sekmesi veya foto menu paylasimlari gercek fiyat verisi
+    # icerebiliyor. Instagram ise anonim (girissiz) taramada neredeyse her
+    # zaman giris duvarina takildigi icin hala haric.
     NON_MENU_DOMAINS = [
         "wheree.com", "tripadvisor.", "yelp.", "foursquare.", "zomato.",
-        "facebook.com", "instagram.com", "happycow.", "restaurantguru.",
+        "instagram.com", "happycow.", "restaurantguru.",
         "google.com/maps", "goo.gl/maps", "maps.app.goo.gl", "g.page",
         "yellowpages.", "sahibinden.com", "wikipedia.org", "youtube.com",
         "twitter.com", "x.com", "linkedin.com", "cybo.com", "nicelocal.",
@@ -263,6 +269,13 @@ def search_digital_menu(restaurant_name: str, location: str = "İzmir") -> str:
         """
         STOPWORDS = {"cafe", "kafe", "restaurant", "restoran", "bar", "usta",
                      "the", "ve", "ile", "izmir", "alsancak"}
+        # Facebook sayfalari girissiz (anonim) requests.get ile cekildiginde
+        # gercek icerik yerine bir "giris yap" kabugu donuyor - bu yuzden
+        # metin eslesmesi guvenilir degil ve neredeyse hep basarisiz olur.
+        # Arama motorunun zaten alaka duzeyine gore siraladigina guvenip bu
+        # dogrulamayi atliyoruz.
+        if "facebook.com" in url.lower():
+            return True
         tokens = [
             t for t in _re.findall(r"[a-zçğıöşü0-9]+", name.lower())
             if len(t) > 2 and t not in STOPWORDS
@@ -275,7 +288,15 @@ def search_digital_menu(restaurant_name: str, location: str = "İzmir") -> str:
         except Exception:
             return True
         hits = sum(1 for t in tokens if t in page_text)
-        if hits < max(1, len(tokens) // 2):
+        # Onceki esik (yarisi yeter) yanlis pozitiflere acikti: "yenidogan
+        # kokorec" gibi 2 kelimelik isimlerde sadece jenerik yemek turu
+        # kelimesi ("kokorec") eslesip mekana ozgu kelime ("yenidogan") hic
+        # gecmese bile dogrulama geciyordu - sonucta "yenidogan kokorec"
+        # baska bir kokorecci zincirinin (kokoreco.com) sitesiyle yanlis
+        # eslesti. 1-2 kelimelik isimlerde TUM kelimeler, daha uzun isimlerde
+        # en fazla 1 kelime eksik olabilir.
+        required = len(tokens) if len(tokens) <= 2 else len(tokens) - 1
+        if hits < required:
             return False
         if len(tokens) <= 1:
             loc_tokens = [
@@ -399,7 +420,27 @@ def search_digital_menu(restaurant_name: str, location: str = "İzmir") -> str:
                     ensure_ascii=False,
                 )
 
-    # 3) Hicbir eslesme yoksa bulunamadi don, ipucu olarak ilk sonucu ekle
+    # 3) Ne bilinen platform ne restoran websitesi bulundu - son care olarak
+    #    Facebook sayfasini kabul et. Kucuk yerel isletmelerin cogunun ayri
+    #    bir websitesi/QR menusu yok ama Facebook sayfasi var; menu bilgisi
+    #    (yerlesik Menu sekmesi veya foto olarak paylasilan menu) sadece
+    #    burada olabiliyor. Tarama asamasinda (scrape_menu_page) bu linkler
+    #    icin ozel bir Facebook mantigi ve foto-OCR devreye giriyor.
+    for link in links:
+        low = link.lower()
+        if "facebook.com" in low and "/photos" not in low and "/videos" not in low:
+            return json.dumps(
+                {
+                    "restoran": restaurant_name,
+                    "menu_linki": link,
+                    "platform": "facebook",
+                    "durum": "bulundu",
+                    "arama_kaynagi": arama_kaynagi,
+                },
+                ensure_ascii=False,
+            )
+
+    # 4) Hicbir eslesme yoksa bulunamadi don, ipucu olarak ilk sonucu ekle
     if links:
         return json.dumps(
             {
@@ -558,6 +599,61 @@ def find_restaurant_website(restaurant_name: str, location: str = "Alsancak, İz
 
 
 # ─────────────────────────────────────────────────────────────
+# Facebook fotograf-menu OCR yardimcisi (scrape_menu_page icinde kullanilir)
+# ─────────────────────────────────────────────────────────────
+
+def _openai_vision_extract_menu(image_bytes: bytes) -> list:
+    """
+    Kucuk isletmelerin cogu dijital menu yerine Facebook'a menu FOTOGRAFI
+    paylasiyor - duz metin taramasi bu fotograflardaki urun/fiyati goremez.
+    Bu fonksiyon fotografi OpenAI'nin gorsel modeline (vision) gonderip
+    icindeki urun/fiyat ciftlerini metne donusturur. OPENAI_API_KEY .env'de
+    tanimli degilse veya cagri basarisiz olursa sessizce bos liste doner
+    (cagiran taraf diger fotograflari denemeye devam eder).
+    """
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        return []
+    b64 = base64.b64encode(image_bytes).decode()
+    prompt = (
+        "Bu bir restoran/kafe menu fotografi olabilir. Eger oyleyse, "
+        "fotograftaki HER urun ve fiyatini cikar. Sadece JSON dizisi olarak "
+        'don: [{"urun": "...", "fiyat": "..."}]. Bu bir menu fotografi '
+        "degilse (orn. yemek/mekan fotografi, logo, insan fotografi) bos "
+        "dizi [] don. Baska hicbir aciklama yazma."
+    )
+    try:
+        resp = requests.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={
+                "model": "gpt-4o-mini",
+                "messages": [{
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}},
+                    ],
+                }],
+                "max_tokens": 800,
+            },
+            timeout=30,
+        )
+        if resp.status_code != 200:
+            return []
+        content = resp.json()["choices"][0]["message"]["content"]
+    except Exception:
+        return []
+    start, end = content.find('['), content.rfind(']')
+    if start == -1 or end == -1 or end <= start:
+        return []
+    try:
+        return json.loads(content[start:end + 1])
+    except Exception:
+        return []
+
+
+# ─────────────────────────────────────────────────────────────
 # AGENT 3 ARACI: Playwright ile Menü Sayfası Tarayıcı
 # ─────────────────────────────────────────────────────────────
 
@@ -568,7 +664,9 @@ def scrape_menu_page(base_url: str) -> str:
     kategori butonlarına tıklar ve ürün/fiyat listesini çeker.
     FineDine ve Menulux için özel mantık; Karekod Menü, Orderific,
     Menu.com.tr, QrMenu ve diğer platformlar için genelleştirilmiş
-    sekme/scroll taraması kullanır.
+    sekme/scroll taraması kullanır. Facebook linkleri için önce sayfanın
+    yerleşik Menü sekmesini (düz metin), bulamazsa paylaşılan menü
+    fotoğraflarını OpenAI vision ile OCR okuyarak dener.
 
     Args:
         base_url: Taranacak menü sayfasının URL'i (http/https ile başlamalı)
@@ -680,7 +778,7 @@ def scrape_menu_page(base_url: str) -> str:
             except Exception:
                 pass
 
-        for btn in cat_buttons[:8]:
+        for btn in cat_buttons[:15]:
             try:
                 # "nav a" / "nav button" gibi genis secicilerle bazen kategori
                 # sekmesi degil, sitenin ana navigasyonu (Anasayfa, Hakkimizda,
@@ -721,40 +819,66 @@ def scrape_menu_page(base_url: str) -> str:
 
     def extract_items(text: str) -> list:
         items = []
+        # Turk restoran menulerinde "Porsiyon", "Yarim", "Ceyrek" gibi genel
+        # boyut isimleri birden fazla kategoride tekrar eder (orn. Kokorec
+        # Porsiyon, Sogus Porsiyon, Midye Porsiyon - farkli fiyatlarda farkli
+        # urunler). Fiyati olmayan kisa satirlar genelde bu kategori
+        # basliklaridir (KOKOREC, SUCUK, Icecekler); bunu takip edip sonraki
+        # urunlerin onune ekliyoruz ki asagidaki genel tekillestirme adiminda
+        # farkli kategorilerdeki ayni isimli urunler birbirini silmesin.
+        current_category = None
         lines = [l.strip() for l in text.splitlines() if l.strip() and len(l.strip()) > 1]
+        has_price = [bool(PRICE_RE.search(l)) for l in lines]
         for i, line in enumerate(lines):
             m = PRICE_RE.search(line)
-            if m:
-                fiyat = m.group(0).strip()
-                urun = PRICE_RE.sub("", line).strip().strip(":-.,|/ ")
-                if len(urun) < 2:
-                    prev = lines[i - 1] if i > 0 else ""
-                    # Onceki satir da fiyat iceriyorsa kullanma (orn. "650 TL ₺")
-                    if prev and not PRICE_RE.search(prev):
-                        urun = prev
-                    else:
-                        continue
-                if not urun or any(w in urun.lower() for w in SKIP_WORDS):
+            if not m:
+                # Bazi siteler urun adi ve fiyati AYRI satirlara yazar (orn.
+                # "Ceyrek" / "250 TL"). Boyle durumda bu satir gercek bir
+                # kategori basligi degil, hemen alttaki fiyata ait urun adidir
+                # - bir sonraki satirda fiyat varsa bunu kategori sanmiyoruz
+                # (asagida "prev" fallback'i zaten urun adi olarak kullanacak).
+                next_has_price = (i + 1 < len(lines)) and has_price[i + 1]
+                if not next_has_price:
+                    candidate = line.strip(":-. ")
+                    if 1 < len(candidate) <= 30 and LETTER_RE.search(candidate) and candidate.lower() not in SKIP_WORDS:
+                        current_category = candidate
+                continue
+            fiyat = m.group(0).strip()
+            urun = PRICE_RE.sub("", line).strip().strip(":-.,|/ ")
+            if len(urun) < 2:
+                prev = lines[i - 1] if i > 0 else ""
+                # Onceki satir da fiyat iceriyorsa kullanma (orn. "650 TL ₺")
+                if prev and not PRICE_RE.search(prev):
+                    urun = prev
+                else:
                     continue
-                if not LETTER_RE.search(urun):
-                    # Hala sayisal/sembolik bir deger ise (orn. baska bir fiyat,
-                    # "0.00" gibi stok/placeholder degeri) urun olarak kabul etme.
-                    continue
-                # Urun adi rakamla basliyor ve anlamli harf icermiyorsa atla
-                # (orn. "650 TL ₺" gibi yanlis yakalanmis fiyat satirlari)
-                urun_harf = PRICE_RE.sub("", urun).strip()
-                if len(urun_harf) < 2 or not LETTER_RE.search(urun_harf):
-                    continue
-                if urun and len(urun) > 2:
-                    items.append({"urun": urun[:60], "fiyat": fiyat})
-        # Tekrar kaldir
+            if not urun or any(w in urun.lower() for w in SKIP_WORDS):
+                continue
+            if not LETTER_RE.search(urun):
+                # Hala sayisal/sembolik bir deger ise (orn. baska bir fiyat,
+                # "0.00" gibi stok/placeholder degeri) urun olarak kabul etme.
+                continue
+            # Urun adi rakamla basliyor ve anlamli harf icermiyorsa atla
+            # (orn. "650 TL ₺" gibi yanlis yakalanmis fiyat satirlari)
+            urun_harf = PRICE_RE.sub("", urun).strip()
+            if len(urun_harf) < 2 or not LETTER_RE.search(urun_harf):
+                continue
+            if urun and len(urun) >= 2:
+                if current_category and current_category.lower() not in urun.lower():
+                    urun = f"{current_category}: {urun}"
+                items.append({"urun": urun[:60], "fiyat": fiyat})
+        # Tekrar kaldir. Sinir 30'dan 150'ye cikarildi - kategori basligi
+        # takibi sayesinde artik gercekten farkli urunler (Kokorec Porsiyon
+        # vs Sogus Porsiyon) ayri sayildigi icin genis bir menude toplam urun
+        # sayisi rahatlikla 30'u gecebiliyor, eski sinir bunlari sessizce
+        # kesiyordu (orn. kokoreco.com/menu 32 urunlu bir sayfa).
         seen, unique = set(), []
         for item in items:
             key = (item["urun"].lower(), item["fiyat"])
             if key not in seen:
                 seen.add(key)
                 unique.append(item)
-        return unique[:30]
+        return unique[:150]
 
     def extract_items_name_only(text: str) -> list:
         """
@@ -787,7 +911,7 @@ def scrape_menu_page(base_url: str) -> str:
             if key not in seen:
                 seen.add(key)
                 unique.append(item)
-        return unique[:40]
+        return unique[:100]
 
     try:
         with sync_playwright() as p:
@@ -832,7 +956,65 @@ def scrape_menu_page(base_url: str) -> str:
 
             all_items = []
 
-            if "finedinemenu.com" in base_url:
+            if "facebook.com" in base_url:
+                # Facebook: once sayfanin yerlesik Menu sekmesini (duz metin,
+                # OCR gerektirmez) dene, bulamazsa paylasilan foto menu icin
+                # OpenAI vision OCR'a dus.
+                import re as _re_fb
+                mobile_url = _re_fb.sub(
+                    r'(https?://)(www\.|web\.)?facebook\.com',
+                    r'\1m.facebook.com', base_url
+                )
+
+                menu_tab_url = mobile_url.split('?')[0].rstrip('/') + '/menu/'
+                try:
+                    page.goto(menu_tab_url, wait_until="domcontentloaded", timeout=20000)
+                    page.wait_for_timeout(1500)
+                    text = page.inner_text("body")
+                    if not any(w in text.lower() for w in ("log in to facebook", "giriş yap", "girişi yap")):
+                        all_items = extract_items(text)
+                except Exception:
+                    pass
+
+                if not all_items:
+                    # Ana profil sayfasinda <img> etiketleri neredeyse hep bos
+                    # geliyor (lazy-load) - /photos alt sayfasi gercek foto
+                    # URL'lerini dogrudan render ediyor.
+                    img_urls = []
+                    try:
+                        photos_url = mobile_url.split('?')[0].rstrip('/') + '/photos'
+                        page.goto(photos_url, wait_until="domcontentloaded", timeout=20000)
+                        page.wait_for_timeout(1500)
+                        page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                        page.wait_for_timeout(1200)
+                        img_urls = page.eval_on_selector_all(
+                            "img",
+                            "els => els.map(e => e.src).filter(s => s && s.includes('scontent'))"
+                        )
+                        img_urls = list(dict.fromkeys(img_urls))[:6]
+                    except Exception:
+                        pass
+
+                    for img_url in img_urls:
+                        try:
+                            img_resp = requests.get(img_url, timeout=15)
+                            if img_resp.status_code == 200 and len(img_resp.content) > 4000:
+                                all_items.extend(_openai_vision_extract_menu(img_resp.content))
+                        except Exception:
+                            continue
+
+                # Facebook'ta gercek menu bulunamadiysa, asagidaki genel
+                # "isim-only" fallback'e dusme - o fallback bu sayfadaki
+                # alakasiz arayuz metnini (buton yazilari, gonderi basliklari)
+                # yanlislikla urun sanip kirli veri uretiyor.
+                if not all_items:
+                    browser.close()
+                    return json.dumps(
+                        {"bilgi": "Facebook sayfasinda menu bulunamadi (ne Menu sekmesi ne foto menu)", "url": base_url},
+                        ensure_ascii=False
+                    )
+
+            elif "finedinemenu.com" in base_url:
                 # FineDine: ?table=sample parametresi urunu listesini yukluyor
                 finedine_url = base_url
                 if "?" not in finedine_url:
@@ -907,7 +1089,7 @@ def scrape_menu_page(base_url: str) -> str:
                                   'baslik', 'label', 'description')
 
                     def scan(obj, depth=0):
-                        if depth > 14 or len(nd_items) >= 50:
+                        if depth > 14 or len(nd_items) >= 150:
                             return
                         if isinstance(obj, dict):
                             pval = next(
@@ -950,14 +1132,18 @@ def scrape_menu_page(base_url: str) -> str:
 
             browser.close()
 
-            # Tekrarlari kaldir
+            # Tekrarlari kaldir - isim TEK BASINA degil, isim+fiyat birlikte
+            # anahtar olmali. Sadece isme gore tekillestirmek, farkli
+            # kategorilerdeki ayni isimli ama farkli fiyatli urunleri (orn.
+            # Kokorec Porsiyon 700 vs Sogus Porsiyon 800) yanlislikla ayni
+            # urun sanip birini sessizce siliyordu.
             seen, unique = set(), []
             for item in all_items:
-                key = item["urun"].lower()
+                key = (item["urun"].lower(), item["fiyat"])
                 if key not in seen:
                     seen.add(key)
                     unique.append(item)
-            all_items = unique[:50]
+            all_items = unique[:150]
 
             if not all_items:
                 return json.dumps(
